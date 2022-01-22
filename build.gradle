@@ -1,10 +1,13 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
 plugins {
     id 'java-library'
     id 'maven-publish'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
     id 'gradle-build-utils' version '1.1.0'
 }
 
-def props = loadProperties.call('publish.properties')
+Properties props = loadProperties.call('publish.properties')
 
 sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_8
 
@@ -34,22 +37,87 @@ repositories {
     }
 
     maven {
-        if (!Arrays.stream("mavenHost", "mavenUser", "mavenPassword").allMatch(privateProps.&containsKey)) {
+        if (!Arrays.stream("mavenHost", "mavenUser", "mavenPassword").allMatch(props.&containsKey)) {
             throw new IllegalStateException('Publish properties must contain values for "mavenPassword", "mavenHost" and "mavenUser".')
         }
         credentials {
-            username privateProps.getProperty('mavenUser');
-            password privateProps.getProperty('mavenPassword');
+            username props.getProperty('mavenUser')
+            password props.getProperty('mavenPassword')
         }
-        url privateProps.getProperty('mavenHost');
+        url props.getProperty('mavenHost')
     }
 }
 
 dependencies {
+    compileOnly 'org.spigotmc:spigot-api:1.14.4-R0.1-SNAPSHOT'
+    implementation 'work.lclpnet:lclpnetwork-api:1.2.0'
+    implementation 'work.lclpnet.mcserver-api:mcserver-api-base:0.10.0'
+    implementation 'work.lclpnet:lclpstorage:1.0.0'
+    implementation 'work.lclpnet:translations:1.0.3'
+
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
 }
 
 test {
     useJUnitPlatform()
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+shadowJar {
+    dependencies {
+        include(dependency('work.lclpnet:lclpnetwork-api:.*'))
+        include(dependency('work.lclpnet.mcserver-api:mcserver-api-base:.*'))
+        include(dependency('work.lclpnet:lclpstorage:.*'))
+        include(dependency('work.lclpnet:translations:.*'))
+    }
+
+    // Relocate to prevent conflicts with other mods that include it
+    relocate 'work.lclpnet.lclpnetwork', 'mcsapi.work.lclpnet.lclpnetwork'
+    relocate 'work.lclpnet.serverapi', 'mcsapi.work.lclpnet.serverapi'
+    relocate 'work.lclpnet.storage', 'mcsapi.work.lclpnet.storage'
+    relocate 'work.lclpnet.translations', 'mcsapi.work.lclpnet.translations'
+
+    archiveClassifier.set('') // Replace the default JAR
+}
+
+tasks.build.dependsOn('shadowJar')
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'mcserver-api-bukkit'
+            from components.java
+
+            pom {
+                name = 'MCServer Bukkit Implementation'
+                description = 'A Java library to manage Minecraft server backend interaction with LCLPNetwork. For Bukkit.'
+            }
+        }
+    }
+    repositories {
+        maven {
+            if (props.containsKey('mavenPassword')
+                    && props.containsKey('mavenHost')
+                    && props.containsKey('mavenUser')) {
+                credentials {
+                    username props.getProperty('mavenUser');
+                    password props.getProperty('mavenPassword');
+                }
+                url props.getProperty('mavenHost');
+            } else {
+                url "file:///${project.projectDir}/repo"
+            }
+        }
+    }
+}
+
+processResources {
+    from(sourceSets.main.resources.srcDirs) {
+        filter ReplaceTokens, tokens: [version: project.version]
+    }
 }
