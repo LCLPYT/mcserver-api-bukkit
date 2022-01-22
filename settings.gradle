@@ -1,0 +1,11 @@
+pluginManagement {
+    repositories {
+        maven {
+            name = 'LCLPNetwork Maven'
+            url = 'https://repo.lclpnet.work/repository/internal'
+        }
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'MCServerAPI-Bukkit'

@@ -1,0 +1,55 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'gradle-build-utils' version '1.1.0'
+}
+
+def props = loadProperties.call('publish.properties')
+
+sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_8
+
+group = project.mavenGroup
+archivesBaseName = project.mavenArchivesName
+version = gitVersion.call()
+
+repositories {
+    mavenCentral()
+
+    maven {
+        name = 'spigotmc-repo'
+        url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
+        content {
+            includeGroup 'org.bukkit'
+            includeGroup 'org.spigotmc'
+        }
+    }
+
+    maven {
+        name = 'sonatype'
+        url = 'https://oss.sonatype.org/content/groups/public/'
+    }
+
+    maven {
+        url "https://repo.lclpnet.work/repository/internal"
+    }
+
+    maven {
+        if (!Arrays.stream("mavenHost", "mavenUser", "mavenPassword").allMatch(privateProps.&containsKey)) {
+            throw new IllegalStateException('Publish properties must contain values for "mavenPassword", "mavenHost" and "mavenUser".')
+        }
+        credentials {
+            username privateProps.getProperty('mavenUser');
+            password privateProps.getProperty('mavenPassword');
+        }
+        url privateProps.getProperty('mavenHost');
+    }
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+}
+
+test {
+    useJUnitPlatform()
+}
