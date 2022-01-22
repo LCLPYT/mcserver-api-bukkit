@@ -101,9 +101,7 @@ publishing {
     }
     repositories {
         maven {
-            if (props.containsKey('mavenPassword')
-                    && props.containsKey('mavenHost')
-                    && props.containsKey('mavenUser')) {
+            if (Arrays.stream("mavenHost", "mavenUser", "mavenPassword").allMatch(props.&containsKey)) {
                 credentials {
                     username props.getProperty('mavenUser');
                     password props.getProperty('mavenPassword');
