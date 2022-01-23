@@ -3,7 +3,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
     id 'gradle-build-utils' version '1.1.0'
 }
 
@@ -70,10 +70,10 @@ java {
 
 shadowJar {
     dependencies {
-        include(dependency('work.lclpnet:lclpnetwork-api:.*'))
-        include(dependency('work.lclpnet.mcserver-api:mcserver-api-base:.*'))
-        include(dependency('work.lclpnet:lclpstorage:.*'))
-        include(dependency('work.lclpnet:translations:.*'))
+        include(dependency('work.lclpnet:lclpnetwork-api'))
+        include(dependency('work.lclpnet.mcserver-api:mcserver-api-base'))
+        include(dependency('work.lclpnet:lclpstorage'))
+        include(dependency('work.lclpnet:translations'))
     }
 
     // Relocate to prevent conflicts with other mods that include it
