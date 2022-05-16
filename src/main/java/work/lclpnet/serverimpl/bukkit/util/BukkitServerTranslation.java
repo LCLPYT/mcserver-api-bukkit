@@ -8,14 +8,19 @@ package work.lclpnet.serverimpl.bukkit.util;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import work.lclpnet.lclpnetwork.api.APIAccess;
 import work.lclpnet.serverapi.util.ServerTranslation;
+import work.lclpnet.serverimpl.bukkit.MCServerBukkit;
 import work.lclpnet.translations.Translations;
 import work.lclpnet.translations.io.JarTranslationLocator;
 import work.lclpnet.translations.io.ResourceTranslationLoader;
+import work.lclpnet.translations.network.LCLPNetworkTranslationLoader;
+import work.lclpnet.translations.network.LCLPTranslationAPI;
 import work.lclpnet.translations.util.ILogger;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.logging.Logger;
 
 public class BukkitServerTranslation {
 
@@ -32,4 +37,17 @@ public class BukkitServerTranslation {
         return ServerTranslation.getTranslation(player.getUniqueId().toString(), player.getLocale(), key, substitutes);
     }
 
+    public static void fetchTranslationsForApp(String appName, Logger originalLogger) {
+        ILogger logger = new BukkitLogger(originalLogger);
+        APIAccess access = MCServerBukkit.getAPI().getAPIAccess();
+        if (access == null) throw new IllegalStateException("API access is not yet defined. (called to early)");
+
+        LCLPTranslationAPI api = new LCLPTranslationAPI(access);
+        LCLPNetworkTranslationLoader loader = new LCLPNetworkTranslationLoader(Collections.singletonList(appName), null, api, logger);
+        try {
+            Translations.loadAsyncFrom(loader).thenAccept(ignored -> {});
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

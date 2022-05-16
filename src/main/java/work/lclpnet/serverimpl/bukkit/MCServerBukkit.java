@@ -37,6 +37,7 @@ public class MCServerBukkit extends JavaPlugin {
     public static final String pre = String.format("%s%s> %s", ChatColor.BLUE, PLUGIN_NAME, ChatColor.GRAY);
     private static MCServerBukkit plugin = null;
     private static MCServerAPI API = null;
+    private static boolean testMode = false;
     public static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(10);
 
     public static MCServerBukkit getPlugin() {
@@ -49,6 +50,13 @@ public class MCServerBukkit extends JavaPlugin {
 
     @Override
     public void onLoad() {
+        String test = System.getProperty("mcsapi.test-mode");
+        if (test != null) {
+            testMode = test.equalsIgnoreCase("true") || test.equalsIgnoreCase("yes") || test.equals("1");
+            if (testMode)
+                Bukkit.getConsoleSender().sendMessage(ChatColor.LIGHT_PURPLE + "Enabling test mode... Stats will not be saved.");
+        }
+
         loadConfig();
 
         String token;
@@ -152,4 +160,7 @@ public class MCServerBukkit extends JavaPlugin {
         }
     }
 
+    public static boolean isTestMode() {
+        return testMode;
+    }
 }
