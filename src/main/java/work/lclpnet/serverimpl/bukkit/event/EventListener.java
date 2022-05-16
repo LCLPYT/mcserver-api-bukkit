@@ -26,26 +26,29 @@ import work.lclpnet.serverimpl.bukkit.util.StatsManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class EventListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
-        Player p = e.getPlayer();
+        updateLastSeen(e.getPlayer());
+    }
 
-        MCServerBukkit.getAPI().updateLastSeen(p.getUniqueId().toString()).exceptionally(ex -> {
+    @EventHandler
+    public void onQuit(PlayerQuitEvent e) {
+        final Player p = e.getPlayer();
+        updateLastSeen(p).thenRun(() -> ServerCache.dropAllCachesFor(p.getUniqueId().toString()));
+    }
+
+    private CompletableFuture<Void> updateLastSeen(Player p) {
+        return MCServerBukkit.getAPI().updateLastSeen(p.getUniqueId().toString()).exceptionally(ex -> {
             if(Config.debug) ex.printStackTrace();
             return null;
         }).thenAccept(player -> {
             if(player == null)
                 MCServerBukkit.getPlugin().getLogger().warning(String.format("Could not update last seen for player '%s'.", p.getName()));
         });
-    }
-
-    @EventHandler
-    public void onQuit(PlayerQuitEvent e) {
-        Player p = e.getPlayer();
-        ServerCache.dropAllCachesFor(p.getUniqueId().toString());
     }
 
     @EventHandler(priority = EventPriority.HIGH)
