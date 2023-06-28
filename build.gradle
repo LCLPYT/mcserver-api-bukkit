@@ -1,8 +1,5 @@
 import work.lclpnet.build.task.GithubDeploymentTask
 
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
-
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -77,67 +74,37 @@ processResources {
     }
 }
 
+jar {
+    archiveClassifier.set('slim')
+}
+
 shadowJar {
     dependencies {
-        include(dependency('work.lclpnet:lclpnetwork-api'))
         include(dependency('work.lclpnet.mcserver-api:mcserver-api-base'))
+        include(dependency('work.lclpnet:lclpnetwork-api'))
         include(dependency('work.lclpnet:lclpstorage'))
         include(dependency('work.lclpnet:translations4j'))
         include(dependency('org.slf4j:slf4j-api'))
         include(dependency('org.slf4j:slf4j-simple'))
     }
 
-    // Relocate to prevent conflicts with other mods that include it
+    // Relocate bundled dependencies to prevent conflicts with other plugins that include it
     relocate 'work.lclpnet.lclpnetwork', 'mcsapi.work.lclpnet.lclpnetwork'
-    relocate 'work.lclpnet.serverapi', 'mcsapi.work.lclpnet.serverapi'
     relocate 'work.lclpnet.storage', 'mcsapi.work.lclpnet.storage'
     relocate 'work.lclpnet.translations', 'mcsapi.work.lclpnet.translations'
     relocate 'org.slf4j', 'mcsapi.org.slf4j'
 
     mergeServiceFiles()
 
-    archiveClassifier.set('full')  // Replace the default JAR
+    archiveClassifier.set('')
 }
 
 tasks.build.dependsOn('shadowJar')
 
-abstract class PrepareGitHubAssetsTask extends DefaultTask {
-    @InputFile
-    abstract RegularFileProperty getInputFile();
-
-    @OutputFile
-    abstract RegularFileProperty getOutputFile();
-
-    PrepareGitHubAssetsTask() {
-        setGroup PublishingPlugin.PUBLISH_TASK_GROUP
-    }
-
-    @TaskAction
-    void execute() {
-        def from = getInputFile().get().getAsFile().toPath()
-        def to = getOutputFile().get().getAsFile().toPath()
-
-        if (!Files.exists(to.getParent())) {
-            Files.createDirectories(to.getParent())
-        }
-
-        Files.copy from, to, StandardCopyOption.REPLACE_EXISTING
-    }
-}
-
-tasks.register('prepareGithubAssets', PrepareGitHubAssetsTask).configure {
-    dependsOn tasks.shadowJar, tasks.jar
-
-    inputFile = tasks.shadowJar.archiveFile
-    outputFile = project.file(project.buildDir.toPath()
-            .resolve('github')
-            .resolve(tasks.jar.archiveFile.get().getAsFile().getName()))
-}
-
 def env = System.getenv()
 
 tasks.register("github", GithubDeploymentTask) {
-    dependsOn tasks.prepareGithubAssets
+    dependsOn tasks.shadowJar
 
     config {
         token = env.get("GITHUB_TOKEN")
@@ -149,7 +116,7 @@ tasks.register("github", GithubDeploymentTask) {
         tag = buildUtils.latestTag()
     }
 
-    assets.add(tasks.prepareGithubAssets.outputFile.get())
+    assets.add(tasks.shadowJar.archiveFile.get())
 }
 
 publishing {
@@ -159,6 +126,7 @@ publishing {
         mavenJava(MavenPublication) {
             artifactId = project.archives_base_name
 
+            artifact shadowJar
             artifact jar
             artifact sourcesJar
             artifact javadocJar
