@@ -48,6 +48,8 @@ public class MCServerBukkit extends JavaPlugin implements ServerContext {
 
     @Override
     public void onLoad() {
+        MCServerBukkit.plugin = this;
+
         String test = System.getProperty("mcsapi.test-mode");
         if (test != null) {
             testMode = test.equalsIgnoreCase("true") || test.equalsIgnoreCase("yes") || test.equals("1");
