@@ -1,5 +1,8 @@
 import work.lclpnet.build.task.GithubDeploymentTask
 
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -68,10 +71,6 @@ processResources {
     }
 }
 
-jar {
-    archiveClassifier.set('slim')
-}
-
 [jar, sourcesJar, javadocJar, shadowJar].each {
     it.from(rootProject.file('LICENSE')) {
         rename { "${it}_${project.archives_base_name}"}
@@ -97,15 +96,48 @@ shadowJar {
 
     mergeServiceFiles()
 
-    archiveClassifier.set('')  // Replace the default JAR
+    archiveClassifier.set('full')  // Replace the default JAR
 }
 
 tasks.build.dependsOn('shadowJar')
 
+abstract class PrepareGitHubAssetsTask extends DefaultTask {
+    @InputFile
+    abstract RegularFileProperty getInputFile();
+
+    @OutputFile
+    abstract RegularFileProperty getOutputFile();
+
+    PrepareGitHubAssetsTask() {
+        setGroup PublishingPlugin.PUBLISH_TASK_GROUP
+    }
+
+    @TaskAction
+    void execute() {
+        def from = getInputFile().get().getAsFile().toPath()
+        def to = getOutputFile().get().getAsFile().toPath()
+
+        if (!Files.exists(to.getParent())) {
+            Files.createDirectories(to.getParent())
+        }
+
+        Files.copy from, to, StandardCopyOption.REPLACE_EXISTING
+    }
+}
+
+tasks.register('prepareGithubAssets', PrepareGitHubAssetsTask).configure {
+    dependsOn tasks.shadowJar, tasks.jar
+
+    inputFile = tasks.shadowJar.archiveFile
+    outputFile = project.file(project.buildDir.toPath()
+            .resolve('github')
+            .resolve(tasks.jar.archiveFile.get().getAsFile().getName()))
+}
+
 def env = System.getenv()
 
 tasks.register("github", GithubDeploymentTask) {
-    dependsOn tasks.shadowJar
+    dependsOn tasks.prepareGithubAssets
 
     config {
         token = env.get("GITHUB_TOKEN")
@@ -117,7 +149,7 @@ tasks.register("github", GithubDeploymentTask) {
         tag = buildUtils.latestTag()
     }
 
-    assets.add(tasks.shadowJar.archiveFile.get())
+    assets.add(tasks.prepareGithubAssets.outputFile.get())
 }
 
 publishing {
