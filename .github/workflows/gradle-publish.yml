@@ -8,6 +8,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # required to create a release on the repository
     steps:
       - uses: actions/checkout@v3
 
@@ -25,7 +27,7 @@ jobs:
 
       # perform the gradle build
       - name: Execute Gradle Build
-        run: ./gradlew build publish --stacktrace -Porg.gradle.parallel.threads=4
+        run: ./gradlew build publish github --stacktrace -Porg.gradle.parallel.threads=4
         env:
           DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}

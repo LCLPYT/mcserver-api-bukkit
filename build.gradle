@@ -1,3 +1,5 @@
+import work.lclpnet.build.task.GithubDeploymentTask
+
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -37,7 +39,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'org.spigotmc:spigot-api:1.14.4-R0.1-SNAPSHOT'
+    compileOnly "org.spigotmc:spigot-api:${project.spigot_version}"
     implementation 'org.slf4j:slf4j-api:2.0.6'
     implementation 'org.slf4j:slf4j-simple:2.0.7'
     implementation "work.lclpnet:lclpnetwork-api:${project.lclpnetwork_api_version}"
@@ -95,6 +97,24 @@ shadowJar {
 }
 
 tasks.build.dependsOn('shadowJar')
+
+def env = System.getenv()
+
+tasks.register("github", GithubDeploymentTask) {
+    dependsOn tasks.shadowJar
+
+    config {
+        token = env.get("GITHUB_TOKEN")
+        repository = env.get("GITHUB_REPOSITORY")
+    }
+
+    release {
+        title = "[$project.minecraft_version] $project.name $project.version"
+        tag = buildUtils.latestTag()
+    }
+
+    assets.add(tasks.shadowJar.archiveFile.get())
+}
 
 publishing {
     buildUtils.setupPublishRepository(repositories, props)
