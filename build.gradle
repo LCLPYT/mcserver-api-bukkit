@@ -68,6 +68,10 @@ processResources {
     }
 }
 
+jar {
+    archiveClassifier.set('slim')
+}
+
 [jar, sourcesJar, javadocJar, shadowJar].each {
     it.from(rootProject.file('LICENSE')) {
         rename { "${it}_${project.archives_base_name}"}
