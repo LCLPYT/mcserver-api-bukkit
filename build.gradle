@@ -1,19 +1,17 @@
-import org.apache.tools.ant.filters.ReplaceTokens
-
 plugins {
     id 'java-library'
     id 'maven-publish'
     id 'com.github.johnrengelman.shadow' version '7.1.2'
-    id 'gradle-build-utils' version '1.1.0'
+    id 'gradle-build-utils' version '1.5.3'
 }
 
-Properties props = loadProperties.call('publish.properties')
+Properties props = buildUtils.loadProperties('publish.properties')
 
 sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_8
 
-group = project.mavenGroup
-archivesBaseName = project.mavenArchivesName
-version = gitVersion.call()
+group = project.maven_group
+version = buildUtils.gitVersion()
+archivesBaseName = project.archives_base_name
 
 repositories {
     mavenCentral()
@@ -21,6 +19,7 @@ repositories {
     maven {
         name = 'spigotmc-repo'
         url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
+
         content {
             includeGroup 'org.bukkit'
             includeGroup 'org.spigotmc'
@@ -35,25 +34,16 @@ repositories {
     maven {
         url "https://repo.lclpnet.work/repository/internal"
     }
-
-    maven {
-        if (!Arrays.stream("mavenHost", "mavenUser", "mavenPassword").allMatch(props.&containsKey)) {
-            throw new IllegalStateException('Publish properties must contain values for "mavenPassword", "mavenHost" and "mavenUser".')
-        }
-        credentials {
-            username props.getProperty('mavenUser')
-            password props.getProperty('mavenPassword')
-        }
-        url props.getProperty('mavenHost')
-    }
 }
 
 dependencies {
     compileOnly 'org.spigotmc:spigot-api:1.14.4-R0.1-SNAPSHOT'
-    implementation 'work.lclpnet:lclpnetwork-api:1.2.0'
-    implementation 'work.lclpnet.mcserver-api:mcserver-api-base:0.10.1'
-    implementation 'work.lclpnet:lclpstorage:1.0.0'
-    implementation 'work.lclpnet:translations:1.0.3'
+    implementation 'org.slf4j:slf4j-api:2.0.6'
+    implementation 'org.slf4j:slf4j-simple:2.0.7'
+    implementation "work.lclpnet:lclpnetwork-api:${project.lclpnetwork_api_version}"
+    implementation "work.lclpnet.mcserver-api:mcserver-api-base:${project.mcserver_api_base_version}"
+    implementation "work.lclpnet:lclpstorage:${project.lclpstorage_version}"
+    implementation "work.lclpnet:translations4j:${project.translations4j_version}"
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
@@ -68,12 +58,28 @@ java {
     withSourcesJar()
 }
 
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("plugin.yml") {
+        expand "version": project.version
+    }
+}
+
+[jar, sourcesJar, javadocJar, shadowJar].each {
+    it.from(rootProject.file('LICENSE')) {
+        rename { "${it}_${project.archives_base_name}"}
+    }
+}
+
 shadowJar {
     dependencies {
         include(dependency('work.lclpnet:lclpnetwork-api'))
         include(dependency('work.lclpnet.mcserver-api:mcserver-api-base'))
         include(dependency('work.lclpnet:lclpstorage'))
-        include(dependency('work.lclpnet:translations'))
+        include(dependency('work.lclpnet:translations4j'))
+        include(dependency('org.slf4j:slf4j-api'))
+        include(dependency('org.slf4j:slf4j-simple'))
     }
 
     // Relocate to prevent conflicts with other mods that include it
@@ -81,43 +87,30 @@ shadowJar {
     relocate 'work.lclpnet.serverapi', 'mcsapi.work.lclpnet.serverapi'
     relocate 'work.lclpnet.storage', 'mcsapi.work.lclpnet.storage'
     relocate 'work.lclpnet.translations', 'mcsapi.work.lclpnet.translations'
+    relocate 'org.slf4j', 'mcsapi.org.slf4j'
 
-    archiveClassifier.set('') // Replace the default JAR
+    mergeServiceFiles()
+
+    archiveClassifier.set('')  // Replace the default JAR
 }
 
 tasks.build.dependsOn('shadowJar')
 
 publishing {
+    buildUtils.setupPublishRepository(repositories, props)
+
     publications {
         mavenJava(MavenPublication) {
-            artifactId = 'mcserver-api-bukkit'
-            from components.java
+            artifactId = project.archives_base_name
+
+            artifact jar
+            artifact sourcesJar
+            artifact javadocJar
 
             pom {
                 name = 'MCServer Bukkit Implementation'
                 description = 'A Java library to manage Minecraft server backend interaction with LCLPNetwork. For Bukkit.'
             }
         }
-    }
-    repositories {
-        maven {
-            if (Arrays.stream("mavenHost", "mavenUser", "mavenPassword").allMatch(props.&containsKey)) {
-                credentials {
-                    username props.getProperty('mavenUser');
-                    password props.getProperty('mavenPassword');
-                }
-                url props.getProperty('mavenHost');
-            } else {
-                url "file:///${project.projectDir}/repo"
-            }
-        }
-    }
-}
-
-processResources {
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
-
-    from(sourceSets.main.resources.srcDirs) {
-        filter ReplaceTokens, tokens: [version: project.version]
     }
 }

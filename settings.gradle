@@ -8,4 +8,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'MCServerAPI-Bukkit'
+rootProject.name = 'mcserver-api-bukkit'

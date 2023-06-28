@@ -7,8 +7,12 @@
 package work.lclpnet.serverimpl.bukkit.cmd;
 
 import work.lclpnet.serverapi.cmd.MCLinkCommandScheme;
+import work.lclpnet.serverapi.util.ServerContext;
 import work.lclpnet.serverimpl.bukkit.cmd.util.PlatformCommandSchemeBase;
 
 public class CommandMCLink extends PlatformCommandSchemeBase<Boolean> implements MCLinkCommandScheme {
 
+    public CommandMCLink(ServerContext context) {
+        super(context);
+    }
 }

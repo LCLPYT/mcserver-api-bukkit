@@ -15,38 +15,36 @@ import work.lclpnet.lclpnetwork.api.APIAccess;
 import work.lclpnet.lclpnetwork.api.APIAuthAccess;
 import work.lclpnet.lclpnetwork.util.Utils;
 import work.lclpnet.serverapi.MCServerAPI;
+import work.lclpnet.serverapi.msg.ServerTranslations;
 import work.lclpnet.serverapi.util.ServerCache;
+import work.lclpnet.serverapi.util.ServerContext;
 import work.lclpnet.serverimpl.bukkit.cmd.BukkitCommands;
 import work.lclpnet.serverimpl.bukkit.event.EventListener;
-import work.lclpnet.serverimpl.bukkit.util.BukkitLogger;
 import work.lclpnet.serverimpl.bukkit.util.BukkitServerTranslation;
 import work.lclpnet.storage.LocalLCLPStorage;
-import work.lclpnet.translations.util.ILogger;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collection;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class MCServerBukkit extends JavaPlugin {
+public class MCServerBukkit extends JavaPlugin implements ServerContext {
 
     public static final String PLUGIN_NAME = "MCServerAPI";
     public static final String pre = String.format("%s%s> %s", ChatColor.BLUE, PLUGIN_NAME, ChatColor.GRAY);
     private static MCServerBukkit plugin = null;
-    private static MCServerAPI API = null;
-    private static boolean testMode = false;
-    public static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(10);
-
-    public static MCServerBukkit getPlugin() {
-        return plugin;
-    }
-
-    public static MCServerAPI getAPI() {
-        return API;
-    }
+    private final ExecutorService executor = Executors.newFixedThreadPool(10);
+    private final ServerCache serverCache = new ServerCache();
+    private MCServerAPI api = null;
+    private BukkitServerTranslation translations = null;
+    private boolean testMode = false;
 
     @Override
     public void onLoad() {
@@ -70,7 +68,7 @@ public class MCServerBukkit extends JavaPlugin {
 
         APIAuthAccess authAccess = new APIAuthAccess(token);
         authAccess.setHost(Config.live ? Config.liveHost : Config.stagingHost);
-        authAccess.setCustomExecutor(EXECUTOR);
+        authAccess.setCustomExecutor(executor);
 
         try {
             authAccess = APIAccess.withAuthCheck(authAccess).join();
@@ -80,20 +78,17 @@ public class MCServerBukkit extends JavaPlugin {
             throw e;
         }
 
-        API = new MCServerAPI(authAccess);
+        api = new MCServerAPI(authAccess);
         Bukkit.getConsoleSender().sendMessage(String.format("%s%sLogged into LCLPNetwork successfully.", pre, ChatColor.GREEN));
 
-        ILogger logger = new BukkitLogger(getLogger());
+        serverCache.init(api);
 
         try {
-            ServerCache.init(API, logger);
-        } catch (IOException e) {
-            throw new IllegalStateException("Could not initialize ServerCache", e);
-        }
+            ServerTranslations serverTranslations = new ServerTranslations(serverCache);
 
-        try {
-            BukkitServerTranslation.init(this, logger);
-        } catch (IOException e) {
+            translations = new BukkitServerTranslation(serverTranslations);
+            translations.init().join();
+        } catch (RuntimeException e) {
             throw new IllegalStateException("Could not initialize translation service", e);
         }
     }
@@ -103,7 +98,7 @@ public class MCServerBukkit extends JavaPlugin {
         MCServerBukkit.plugin = this;
 
         registerListeners();
-        BukkitCommands.register(this);
+        BukkitCommands.register(this, this);
 
         cacheOnlinePlayers();
 
@@ -114,9 +109,9 @@ public class MCServerBukkit extends JavaPlugin {
     public void onDisable() {
         Bukkit.getConsoleSender().sendMessage("Trying to shutdown MCServer executor... (waiting up to 30 seconds)");
 
-        EXECUTOR.shutdown();
+        executor.shutdown();
         try {
-            if(!EXECUTOR.awaitTermination(30, TimeUnit.SECONDS))
+            if(!executor.awaitTermination(30, TimeUnit.SECONDS))
                 throw new IllegalStateException("MCServer executor was terminated while some tasks were still active.");
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -127,12 +122,12 @@ public class MCServerBukkit extends JavaPlugin {
 
     private void cacheOnlinePlayers() {
         Collection<? extends Player> players = Bukkit.getOnlinePlayers();
-        players.forEach(player -> ServerCache.refreshPlayer(API, player.getUniqueId().toString()));
+        players.forEach(player -> serverCache.refreshPlayer(api, player.getUniqueId().toString()));
     }
 
     private void registerListeners() {
         PluginManager pluginManager = Bukkit.getPluginManager();
-        pluginManager.registerEvents(new EventListener(), plugin);
+        pluginManager.registerEvents(new EventListener(serverCache), plugin);
     }
 
     private void loadConfig() {
@@ -155,12 +150,29 @@ public class MCServerBukkit extends JavaPlugin {
         File tokenFile = new File(dir, "lclpnetwork.token");
         if(!tokenFile.exists()) throw new FileNotFoundException(String.format("'%s' does not exist!", tokenFile.getAbsolutePath()));
 
-        try (InputStream in = new FileInputStream(tokenFile)) {
+        try (InputStream in = Files.newInputStream(tokenFile.toPath())) {
             return Utils.toString(in, StandardCharsets.UTF_8);
         }
     }
 
+    @Override
+    public ServerCache getCache() {
+        return serverCache;
+    }
+
     public static boolean isTestMode() {
-        return testMode;
+        return getPlugin().testMode;
+    }
+
+    public static MCServerBukkit getPlugin() {
+        return plugin;
+    }
+
+    public static MCServerAPI getAPI() {
+        return getPlugin().api;
+    }
+
+    public static BukkitServerTranslation getTranslations() {
+        return getPlugin().translations;
     }
 }

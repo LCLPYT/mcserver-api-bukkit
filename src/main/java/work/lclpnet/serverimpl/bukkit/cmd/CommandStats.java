@@ -14,7 +14,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.scheduler.BukkitRunnable;
 import work.lclpnet.lclpnetwork.facade.MCStats;
 import work.lclpnet.serverapi.cmd.StatsCommandScheme;
-import work.lclpnet.serverapi.translate.MCMessage;
+import work.lclpnet.serverapi.msg.MCMessage;
+import work.lclpnet.serverapi.util.ServerContext;
 import work.lclpnet.serverimpl.bukkit.MCServerBukkit;
 import work.lclpnet.serverimpl.bukkit.cmd.util.PlatformCommandSchemeBase;
 import work.lclpnet.serverimpl.bukkit.util.BukkitMCMessageImplementation;
@@ -27,6 +28,10 @@ import java.util.UUID;
 import static work.lclpnet.serverimpl.bukkit.util.BukkitServerTranslation.getTranslation;
 
 public class CommandStats extends PlatformCommandSchemeBase<Boolean> implements StatsCommandScheme {
+
+    public CommandStats(ServerContext context) {
+        super(context);
+    }
 
     @Override
     public void execute(CommandSender sender, String[] args) {

@@ -1,5 +1,5 @@
 name: MCServerAPI
-version: @version@
+version: $version
 main: work.lclpnet.serverimpl.bukkit.MCServerBukkit
 api-version: 1.14
 authors: [ LCLP ]

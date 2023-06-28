@@ -7,47 +7,42 @@
 package work.lclpnet.serverimpl.bukkit.util;
 
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
-import work.lclpnet.lclpnetwork.api.APIAccess;
-import work.lclpnet.serverapi.util.ServerTranslation;
+import work.lclpnet.serverapi.msg.ServerTranslations;
 import work.lclpnet.serverimpl.bukkit.MCServerBukkit;
-import work.lclpnet.translations.Translations;
-import work.lclpnet.translations.io.JarTranslationLocator;
-import work.lclpnet.translations.io.ResourceTranslationLoader;
-import work.lclpnet.translations.network.LCLPNetworkTranslationLoader;
-import work.lclpnet.translations.network.LCLPTranslationAPI;
-import work.lclpnet.translations.util.ILogger;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.logging.Logger;
+import java.util.concurrent.CompletableFuture;
 
 public class BukkitServerTranslation {
 
-    public static void init(JavaPlugin plugin, ILogger logger) throws IOException {
-        Class<?> clazz = BukkitServerTranslation.class;
+    private final ServerTranslations serverTranslations;
 
-        JarTranslationLocator locator = new JarTranslationLocator(clazz, logger, Collections.singletonList("resource/bukkit/lang/"));
-        ResourceTranslationLoader loader = new ResourceTranslationLoader(locator, plugin::getResource, logger);
-
-        Translations.loadFrom(loader);
+    public BukkitServerTranslation(ServerTranslations serverTranslations) {
+        this.serverTranslations = serverTranslations;
     }
 
+    public CompletableFuture<Void> init() {
+        return serverTranslations.reloadTranslations();
+    }
+
+    public String translate(Player player, String key, Object... substitutes) {
+        return serverTranslations.getTranslation(player.getUniqueId().toString(), player.getLocale(), key, substitutes);
+    }
+
+    /**
+     * Translates a string for a given player.
+     * @param player The player.
+     * @param key The translation key.
+     * @param substitutes Substitutes to replace in the string
+     * @return The translated message.
+     */
     public static String getTranslation(Player player, String key, Object... substitutes) {
-        return ServerTranslation.getTranslation(player.getUniqueId().toString(), player.getLocale(), key, substitutes);
+        BukkitServerTranslation translation = MCServerBukkit.getTranslations();
+        if (translation == null) throw new IllegalStateException("Plugin not yet loaded.");
+
+        return translation.translate(player, key, substitutes);
     }
 
-    public static void fetchTranslationsForApp(String appName, Logger originalLogger) {
-        ILogger logger = new BukkitLogger(originalLogger);
-        APIAccess access = MCServerBukkit.getAPI().getAPIAccess();
-        if (access == null) throw new IllegalStateException("API access is not yet defined. (called to early)");
-
-        LCLPTranslationAPI api = new LCLPTranslationAPI(access);
-        LCLPNetworkTranslationLoader loader = new LCLPNetworkTranslationLoader(Collections.singletonList(appName), null, api, logger);
-        try {
-            Translations.loadAsyncFrom(loader).thenAccept(ignored -> {});
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public ServerTranslations getServerTranslations() {
+        return serverTranslations;
     }
 }

@@ -30,6 +30,12 @@ import java.util.concurrent.CompletableFuture;
 
 public class EventListener implements Listener {
 
+    private final ServerCache serverCache;
+
+    public EventListener(ServerCache serverCache) {
+        this.serverCache = serverCache;
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         updateLastSeen(e.getPlayer());
@@ -38,7 +44,7 @@ public class EventListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         final Player p = e.getPlayer();
-        updateLastSeen(p).thenRun(() -> ServerCache.dropAllCachesFor(p.getUniqueId().toString()));
+        updateLastSeen(p).thenRun(() -> serverCache.dropAllCachesFor(p.getUniqueId().toString()));
     }
 
     private CompletableFuture<Void> updateLastSeen(Player p) {

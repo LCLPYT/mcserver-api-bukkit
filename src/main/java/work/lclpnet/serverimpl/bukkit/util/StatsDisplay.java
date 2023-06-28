@@ -16,7 +16,8 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import work.lclpnet.lclpnetwork.facade.MCStats;
-import work.lclpnet.translations.Translations;
+import work.lclpnet.serverimpl.bukkit.MCServerBukkit;
+import work.lclpnet.translations.Translator;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -214,7 +215,9 @@ public class StatsDisplay {
             Date date = value.getAsDate();
             if(date == null) return getTranslation(viewer, "stats.value.never");
 
-            SimpleDateFormat format = Translations.getDateFormat(viewer.getLocale());
+            Translator translator = MCServerBukkit.getTranslations().getServerTranslations().getTranslator();
+            SimpleDateFormat format = translator.getDateFormat(viewer.getLocale());
+
             return format.format(date);
         } else return value.getValueAsFormattedString();
     }

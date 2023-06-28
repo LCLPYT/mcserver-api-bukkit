@@ -8,13 +8,15 @@ package work.lclpnet.serverimpl.bukkit.util;
 
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import work.lclpnet.serverapi.translate.MCMessage;
+import work.lclpnet.serverapi.msg.MCMessage;
 
 import java.util.*;
 
-import static work.lclpnet.serverapi.translate.MCMessage.MessageColor.*;
+import static work.lclpnet.serverapi.msg.MCMessage.MessageColor.*;
 
 public class BukkitMCMessageImplementation {
+
+    private BukkitMCMessageImplementation() {}
 
     public static String convertMCMessageToString(MCMessage msg, Player receiver) {
         StringBuilder builder = new StringBuilder();
