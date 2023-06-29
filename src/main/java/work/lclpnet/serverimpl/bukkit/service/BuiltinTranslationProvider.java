@@ -9,9 +9,10 @@ package work.lclpnet.serverimpl.bukkit.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.lclpnet.translations.loader.TranslationProvider;
-import work.lclpnet.translations.loader.language.ClassLoaderLanguageLoader;
 import work.lclpnet.translations.loader.language.LanguageLoader;
+import work.lclpnet.translations.loader.language.UrlLanguageLoader;
 
+import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 
@@ -21,9 +22,9 @@ public class BuiltinTranslationProvider implements TranslationProvider {
 
     @Override
     public LanguageLoader create() {
-        ClassLoader classLoader = getClass().getClassLoader();
+        URL[] urls = UrlLanguageLoader.getResourceLocations(this);
         List<String> directories = Collections.singletonList("resource/bukkit/lang/");
 
-        return new ClassLoaderLanguageLoader(classLoader, directories, logger);
+        return new UrlLanguageLoader(urls, directories, logger);
     }
 }
