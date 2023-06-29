@@ -20,6 +20,7 @@ import work.lclpnet.serverapi.util.ServerCache;
 import work.lclpnet.serverapi.util.ServerContext;
 import work.lclpnet.serverimpl.bukkit.cmd.BukkitCommands;
 import work.lclpnet.serverimpl.bukkit.event.EventListener;
+import work.lclpnet.serverimpl.bukkit.util.BukkitSPITranslationLoader;
 import work.lclpnet.serverimpl.bukkit.util.BukkitServerTranslation;
 import work.lclpnet.storage.LocalLCLPStorage;
 
@@ -85,8 +86,14 @@ public class MCServerBukkit extends JavaPlugin implements ServerContext {
 
         serverCache.init(api);
 
+        loadTranslations();
+    }
+
+    private void loadTranslations() {
+        BukkitSPITranslationLoader loader = new BukkitSPITranslationLoader();
+
         try {
-            ServerTranslations serverTranslations = new ServerTranslations(serverCache);
+            ServerTranslations serverTranslations = new ServerTranslations(serverCache, loader);
 
             translations = new BukkitServerTranslation(serverTranslations);
             translations.init().join();
