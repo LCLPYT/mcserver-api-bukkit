@@ -87,7 +87,9 @@ public class BukkitMCMessageImplementation {
 
     private static List<ChatColor> getChatColorsFromStyle(MCMessage.MessageStyle style) {
         List<ChatColor> list = new ArrayList<>();
-        ChatColor color = colorMap.get(style.getColor());
+
+        MCMessage.MessageColor styleColor = style.getColor();
+        ChatColor color = styleColor != null ? colorMap.get(styleColor) : null;
         if(color != null) list.add(color);
 
         if(style.isObfuscated()) list.add(ChatColor.MAGIC);
