@@ -160,7 +160,7 @@ public class MCServerBukkit extends JavaPlugin implements ServerContext {
         if(!tokenFile.exists()) throw new FileNotFoundException(String.format("'%s' does not exist!", tokenFile.getAbsolutePath()));
 
         try (InputStream in = Files.newInputStream(tokenFile.toPath())) {
-            return Utils.toString(in, StandardCharsets.UTF_8);
+            return Utils.toString(in, StandardCharsets.UTF_8).trim();
         }
     }
 
