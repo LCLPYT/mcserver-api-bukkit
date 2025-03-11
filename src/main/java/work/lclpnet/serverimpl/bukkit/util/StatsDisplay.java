@@ -6,15 +6,13 @@
 
 package work.lclpnet.serverimpl.bukkit.util;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.material.MaterialData;
 import work.lclpnet.lclpnetwork.facade.MCStats;
 import work.lclpnet.serverimpl.bukkit.MCServerBukkit;
 import work.lclpnet.translations.Translator;
@@ -140,7 +138,7 @@ public class StatsDisplay {
     }
 
     private static ItemStack getBorder() {
-        ItemStack border = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemStack border = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 0, (byte) 15);
         ItemMeta borderMeta = border.getItemMeta();
         if(borderMeta != null) {
             borderMeta.setDisplayName(ChatColor.RESET + "");
@@ -155,18 +153,10 @@ public class StatsDisplay {
         if(icon != null && icon.getMinecraft() != null) {
             String materialKey = icon.getMinecraft();
 
-            for (Material m : Material.values()) {
-                NamespacedKey key;
-                try {
-                    key = m.getKey();
-                } catch (Exception e) {
-                    continue;
-                }
+            Material material = Bukkit.getUnsafe().getMaterialFromInternalName(materialKey);
 
-                if(materialKey.equals(key.getKey())) {
-                    mat = m;
-                    break;
-                }
+            if (material != null) {
+                mat = material;
             }
         }
 

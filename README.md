@@ -9,5 +9,5 @@ It will install the required maven artifacts into you local maven repository cac
 You can use Docker for that:
 ```
 docker build --build-arg JDK_VERSION=8 -t spigot-builder -f setup/Dockerfile setup/
-docker run --rm -e MC_VERSION=1.14.4 -v ~/.m2:/root/.m2 spigot-builder
+docker run --rm -e MC_VERSION=1.12.2 -v ~/.m2:/root/.m2 spigot-builder
 ```
