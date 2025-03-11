@@ -4,16 +4,17 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'com.github.johnrengelman.shadow' version '7.1.2'
-    id 'gradle-build-utils' version '1.5.3'
+    id 'gradle-build-utils' version '1.7.0'
 }
 
 Properties props = buildUtils.loadProperties('publish.properties')
 
-sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_8
-
 group = project.maven_group
-version = buildUtils.gitVersion()
-archivesBaseName = project.archives_base_name
+version = "${project.plugin_version}+${project.minecraft_version}"
+
+base {
+    archivesName = project.archives_base_name
+}
 
 repositories {
     mavenCentral()
@@ -36,28 +37,27 @@ repositories {
     maven {
         url "https://repo.lclpnet.work/repository/internal"
     }
+
+    mavenLocal()
 }
 
 dependencies {
-    compileOnly "org.spigotmc:spigot-api:${project.spigot_version}"
+    // taken from mavenLocal(); devs must have built Spigot using https://www.spigotmc.org/wiki/buildtools/ once.
+    compileOnly "org.spigotmc:spigot:${project.minecraft_version}-R0.1-SNAPSHOT"
     implementation 'org.slf4j:slf4j-api:2.0.6'
     implementation 'org.slf4j:slf4j-simple:2.0.7'
     implementation "work.lclpnet:lclpnetwork-api:${project.lclpnetwork_api_version}"
     implementation "work.lclpnet.mcserver-api:mcserver-api-base:${project.mcserver_api_base_version}"
     implementation "work.lclpnet:lclpstorage:${project.lclpstorage_version}"
     implementation "work.lclpnet:translations4j:${project.translations4j_version}"
-
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
-}
-
-test {
-    useJUnitPlatform()
 }
 
 java {
     withJavadocJar()
     withSourcesJar()
+
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 processResources {
@@ -113,7 +113,7 @@ tasks.register("github", GithubDeploymentTask) {
 
     release {
         title = "[$project.minecraft_version] $project.name $project.version"
-        tag = buildUtils.latestTag()
+        tag = project.version
     }
 
     assets.add(tasks.shadowJar.archiveFile.get())
