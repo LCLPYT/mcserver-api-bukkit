@@ -155,7 +155,7 @@ public class StatsDisplay {
 
             Material material = Bukkit.getUnsafe().getMaterialFromInternalName(materialKey);
 
-            if (material != null) {
+            if (material != null && material != Material.AIR) {
                 mat = material;
             }
         }
