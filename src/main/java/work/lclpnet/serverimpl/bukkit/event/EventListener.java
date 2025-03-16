@@ -48,12 +48,18 @@ public class EventListener implements Listener {
     }
 
     private CompletableFuture<Void> updateLastSeen(Player p) {
-        return MCServerBukkit.getAPI().updateLastSeen(p.getUniqueId().toString()).exceptionally(ex -> {
-            if(Config.debug) ex.printStackTrace();
-            return null;
-        }).thenAccept(player -> {
-            if(player == null)
-                MCServerBukkit.getPlugin().getLogger().warning(String.format("Could not update last seen for player '%s'.", p.getName()));
+        return MCServerBukkit.getAPI().map(api -> api.updateLastSeen(p.getUniqueId().toString())
+                .exceptionally(ex -> {
+                    if(Config.debug) ex.printStackTrace();
+                    return null;
+                }).thenAccept(player -> {
+                    if(player == null)
+                        MCServerBukkit.getPlugin().getLogger().warning(String.format("Could not update last seen for player '%s'.", p.getName()));
+                })
+        ).orElseGet(() -> {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            future.completeExceptionally(MCServerBukkit.nonFunctional());
+            return future;
         });
     }
 
