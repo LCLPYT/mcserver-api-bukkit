@@ -25,7 +25,7 @@ public abstract class PlatformCommandSchemeBase<T> extends CommandSchemeBase<T> 
 
     @Override
     public MCServerAPI getAPI() {
-        return MCServerBukkit.getAPI();
+        return MCServerBukkit.getAPI().orElseThrow(MCServerBukkit::nonFunctional);
     }
 
     @Override

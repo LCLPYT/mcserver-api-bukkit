@@ -25,7 +25,7 @@ public class StatsHelper {
 
         statMap.reset();
 
-        return MCServerBukkit.getAPI().incrementStat(transaction)
+        return MCServerBukkit.getAPI().map(api -> api.incrementStat(transaction)
                 .exceptionally(ex -> {
                     if (Config.debug) ex.printStackTrace();
                     return null;
@@ -34,11 +34,16 @@ public class StatsHelper {
                     if (result == null) System.err.println("There was an error updating the stats.");
                     else if (!result.isSuccess()) System.err.println("The stats could not be updated properly.");
                     else System.out.println("Stats updated successfully.");
-                });
+                })
+        ).orElseGet(() -> {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            future.completeExceptionally(MCServerBukkit.nonFunctional());
+            return future;
+        });
     }
 
     public static CompletableFuture<Void> updateLastPlayed(String statType, Iterable<String> playerUuids) {
-        return MCServerBukkit.getAPI().updateLastPlayed(statType, playerUuids)
+        return MCServerBukkit.getAPI().map(api -> api.updateLastPlayed(statType, playerUuids)
                 .exceptionally(ex -> {
                     if (Config.debug) ex.printStackTrace();
                     return null;
@@ -46,6 +51,11 @@ public class StatsHelper {
                     if (result == null) System.err.println("There was an error updating last seen.");
                     else if (!result.isSuccess()) System.err.println("Last seen could not be updated properly.");
                     else System.out.println("Last seen updated.");
-                });
+                })
+        ).orElseGet(() -> {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            future.completeExceptionally(MCServerBukkit.nonFunctional());
+            return future;
+        });
     }
 }

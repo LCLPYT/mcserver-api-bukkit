@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,11 +42,15 @@ public class MCServerBukkit extends JavaPlugin implements ServerContext {
     public static final String PLUGIN_NAME = "MCServerAPI";
     public static final String pre = String.format("%s%s> %s", ChatColor.BLUE, PLUGIN_NAME, ChatColor.GRAY);
     private static MCServerBukkit plugin = null;
-    private final ExecutorService executor = Executors.newFixedThreadPool(10);
+    private final ExecutorService executor = Executors.newFixedThreadPool(4);
     private final ServerCache serverCache = new ServerCache();
     private MCServerAPI api = null;
     private BukkitServerTranslation translations = null;
     private boolean testMode = false;
+
+    public static IllegalStateException nonFunctional() {
+        return new IllegalStateException("MCServerAPI is not functional");
+    }
 
     @Override
     public void onLoad() {
@@ -76,15 +81,16 @@ public class MCServerBukkit extends JavaPlugin implements ServerContext {
         try {
             authAccess = APIAccess.withAuthCheck(authAccess).join();
         } catch (CompletionException e) {
-            Bukkit.getServer().shutdown();
-            Bukkit.getConsoleSender().sendMessage(String.format("%s%sCould not login to LCLPNetwork... The server will shut down.", pre, ChatColor.RED));
-            throw e;
+            Bukkit.getConsoleSender().sendMessage(String.format("%s%sCould not login to LCLPNetwork... MCServer-API will not work properly.", pre, ChatColor.RED));
+            authAccess = null;
         }
 
-        api = new MCServerAPI(authAccess);
-        Bukkit.getConsoleSender().sendMessage(String.format("%s%sLogged into LCLPNetwork successfully.", pre, ChatColor.GREEN));
+        if (authAccess != null) {
+            api = new MCServerAPI(authAccess);
+            Bukkit.getConsoleSender().sendMessage(String.format("%s%sLogged into LCLPNetwork successfully.", pre, ChatColor.GREEN));
 
-        serverCache.init(api);
+            serverCache.init(api);
+        }
 
         loadTranslations();
     }
@@ -106,10 +112,12 @@ public class MCServerBukkit extends JavaPlugin implements ServerContext {
     public void onEnable() {
         MCServerBukkit.plugin = this;
 
-        registerListeners();
-        BukkitCommands.register(this, this);
+        if (api != null) {
+            registerListeners();
+            BukkitCommands.register(this, this);
 
-        cacheOnlinePlayers();
+            cacheOnlinePlayers();
+        }
 
         Bukkit.getConsoleSender().sendMessage(String.format("%s%sPlugin enabled.", pre, ChatColor.GREEN));
     }
@@ -177,8 +185,8 @@ public class MCServerBukkit extends JavaPlugin implements ServerContext {
         return plugin;
     }
 
-    public static MCServerAPI getAPI() {
-        return getPlugin().api;
+    public static Optional<MCServerAPI> getAPI() {
+        return Optional.ofNullable(getPlugin()).map(plugin -> plugin.api);
     }
 
     public static BukkitServerTranslation getTranslations() {

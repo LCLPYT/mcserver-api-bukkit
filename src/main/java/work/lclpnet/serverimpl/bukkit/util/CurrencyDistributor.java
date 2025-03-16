@@ -31,7 +31,7 @@ public class CurrencyDistributor {
         final CurrencyMassIncrementTransaction massTransaction = new CurrencyMassIncrementTransaction();
         if(transformer != null) transformer.accept(massTransaction);
 
-        MCServerBukkit.getAPI().incrementStat(massTransaction)
+        MCServerBukkit.getAPI().ifPresent(api -> api.incrementStat(massTransaction)
                 .exceptionally(ex -> {
                     if (Config.debug) {
                         ex.printStackTrace();
@@ -44,6 +44,6 @@ public class CurrencyDistributor {
                 .thenAccept(result -> {
                     if(result == null || !result.isSuccess())
                         System.err.println(msgWhenError);
-                });
+                }));
     }
 }
